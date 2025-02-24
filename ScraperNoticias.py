@@ -20,6 +20,7 @@ si hay más noticias pesimistas o optimistas sobre un tema."""
 
 import feedparser
 import requests
+import json
 from bs4 import BeautifulSoup
 
 # URL del feed RSS de BBC Mundo
@@ -27,6 +28,12 @@ rss_url = 'http://feeds.bbci.co.uk/mundo/rss.xml'
 
 # Parsear el feed
 feed = feedparser.parse(rss_url)
+
+# Lista de palabras clave para filtrar contenido irrelevante
+palabras_clave_excluir = [
+    "Síguenos", "Descarga nuestra app", "Fuente:", "Getty Images",
+    "Por", "Escrito por", "BBC Mundo", "Lea también", "Te puede interesar"
+]
 
 # Función para obtener el contenido de un artículo
 def obtener_contenido(url):
@@ -47,18 +54,38 @@ def obtener_contenido(url):
             parrafos = soup.find_all('p')
         
         # Filtrar párrafos irrelevantes
-        texto = '\n'.join([p.get_text() for p in parrafos if len(p.get_text().split()) > 5])
+        texto_filtrado = []
+        for p in parrafos:
+            texto = p.get_text().strip()
+            if len(texto.split()) > 5 and not any(frase in texto for frase in palabras_clave_excluir):
+                texto_filtrado.append(texto)
         
-        return texto.strip()
+        return '\n'.join(texto_filtrado).strip()
     except Exception as e:
         return f"Error al obtener el contenido: {e}"
 
+# Lista para almacenar las noticias
+noticias = []
+
 # Iterar sobre las noticias y obtener su contenido
 for entry in feed.entries[:5]:  # Solo las primeras 5 noticias para prueba
+    noticia = {
+        "titulo": entry.title,
+        "enlace": entry.link,
+        "contenido": obtener_contenido(entry.link)
+    }
+    noticias.append(noticia)
+    
     print(f"Título: {entry.title}")
     print(f"Enlace: {entry.link}")
     print("Contenido:")
-    print(obtener_contenido(entry.link))
+    print(noticia["contenido"])
     print("-" * 80)
+
+# Guardar las noticias en un archivo JSON
+with open("noticias.json", "w", encoding="utf-8") as archivo:
+    json.dump(noticias, archivo, indent=4, ensure_ascii=False)
+
+print("Noticias guardadas en noticias.json")
 
 
