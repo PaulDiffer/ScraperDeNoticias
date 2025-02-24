@@ -22,7 +22,7 @@ import feedparser
 import requests
 import json
 from bs4 import BeautifulSoup
-from textblob import TextBlob
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 # URL del feed RSS de BBC Mundo
 rss_url = 'http://feeds.bbci.co.uk/mundo/rss.xml'
@@ -35,6 +35,9 @@ palabras_clave_excluir = [
     "Síguenos", "Descarga nuestra app", "Fuente:", "Getty Images",
     "Por", "Escrito por", "BBC Mundo", "Lea también", "Te puede interesar"
 ]
+
+# Inicializar el analizador de VADER
+analyzer = SentimentIntensityAnalyzer()
 
 # Función para obtener el contenido de un artículo
 def obtener_contenido(url):
@@ -65,13 +68,12 @@ def obtener_contenido(url):
     except Exception as e:
         return f"Error al obtener el contenido: {e}"
 
-# Función para analizar el sentimiento de un texto
-def analizar_sentimiento(texto):
-    analysis = TextBlob(texto)
-    polaridad = analysis.sentiment.polarity
-    if polaridad > 0:
+# Función para analizar el sentimiento con VADER
+def analizar_sentimiento_vader(texto):
+    scores = analyzer.polarity_scores(texto)
+    if scores['compound'] >= 0.05:
         return "Positivo"
-    elif polaridad < 0:
+    elif scores['compound'] <= -0.05:
         return "Negativo"
     else:
         return "Neutral"
@@ -82,13 +84,13 @@ noticias = []
 # Iterar sobre las noticias y obtener su contenido
 for entry in feed.entries[:5]:  # Solo las primeras 5 noticias para prueba
     contenido = obtener_contenido(entry.link)
-    sentimiento = analizar_sentimiento(contenido)
+    sentimiento_vader = analizar_sentimiento_vader(contenido)
     
     noticia = {
         "titulo": entry.title,
         "enlace": entry.link,
         "contenido": contenido,
-        "sentimiento": sentimiento
+        "sentimiento_vader": sentimiento_vader
     }
     noticias.append(noticia)
     
@@ -96,7 +98,7 @@ for entry in feed.entries[:5]:  # Solo las primeras 5 noticias para prueba
     print(f"Enlace: {entry.link}")
     print("Contenido:")
     print(contenido)
-    print(f"Sentimiento: {sentimiento}")
+    print(f"Sentimiento (VADER): {sentimiento_vader}")
     print("-" * 80)
 
 # Guardar las noticias en un archivo JSON
