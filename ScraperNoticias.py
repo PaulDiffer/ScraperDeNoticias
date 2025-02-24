@@ -1,7 +1,7 @@
 """El proyecto "Scraper de Noticias con Análisis de Sentimiento" tiene dos 
 partes principales:
 
-Scraping de noticias:
+1-Scraping de noticias:
 
 Extrae noticias de diferentes fuentes en línea (por ejemplo, periódicos, 
 blogs o sitios de noticias).
@@ -9,7 +9,8 @@ Puede hacerlo mediante técnicas como requests + BeautifulSoup o utilizando
 Selenium si la web requiere interacción con JavaScript.
 Los datos extraídos pueden incluir el título, el contenido, la fecha y el 
 enlace de la noticia.
-Análisis de Sentimiento:
+
+2-Análisis de Sentimiento:
 
 Analiza el tono emocional de las noticias (positivo, negativo o neutro).
 Se puede hacer usando bibliotecas de procesamiento de lenguaje natural como 
@@ -36,8 +37,17 @@ def obtener_contenido(url):
         soup = BeautifulSoup(respuesta.text, 'html.parser')
         
         # Encontrar el contenido principal del artículo
-        cuerpo = soup.find_all('p')
-        texto = '\n'.join([p.get_text() for p in cuerpo])
+        articulo = soup.find('article')
+        if not articulo:
+            articulo = soup.find('div', {'class': 'story-body'})
+        
+        if articulo:
+            parrafos = articulo.find_all('p')
+        else:
+            parrafos = soup.find_all('p')
+        
+        # Filtrar párrafos irrelevantes
+        texto = '\n'.join([p.get_text() for p in parrafos if len(p.get_text().split()) > 5])
         
         return texto.strip()
     except Exception as e:
@@ -50,4 +60,5 @@ for entry in feed.entries[:5]:  # Solo las primeras 5 noticias para prueba
     print("Contenido:")
     print(obtener_contenido(entry.link))
     print("-" * 80)
+
 
